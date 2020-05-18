@@ -10,25 +10,25 @@ import csv
 from BackgroundFileInterface  import BackgroundFileLoader
 from SampleImgInterface import SampImgModifier
 
-DEFAULT_PARAMS={
-'BackgroundFilePath':'./Data/background',
-'SampleFilesPath':'./Data/GermanFlag',
-'bgColor': 255,
-'bgTthresh':8,
-'maxXangle':50,
-'maxYangle':50,
-'maxZangle':50,
-'maxAngle_Affine':30,
-'outputPerSample':300,
-'GausNoiseProb':0.2,
-'MedianNoiseProb':0.1,
-'AffineRotateProb':0.3,
-'SharpenProb':0.2,
-'PerspTransProb':0.8,
-'ScalingProb':0.7,
-'BrightnessProb':1,
-'OutputPath':'./Data/GermanFlag/Default',
-'outputPerSample':100
+DEFAULT_PARAMS = {
+    'BackgroundFilePath':'./Data/background',
+    'SampleFilesPath':'./Data/GermanFlag',
+    'bgColor': 255,
+    'bgTthresh':8,
+    'maxXangle':50,
+    'maxYangle':50,
+    'maxZangle':50,
+    'maxAngle_Affine':30,
+    'outputPerSample':300,
+    'GausNoiseProb':0.2,
+    'MedianNoiseProb':0.1,
+    'AffineRotateProb':0.3,
+    'SharpenProb':0.2,
+    'PerspTransProb':0.8,
+    'ScalingProb':0.7,
+    'BrightnessProb':1,
+    'OutputPath':'./Data/GermanFlag/Default',
+    'outputPerSample':100
 }
 
 def placeDistortedSample(outImgTight,foregroundPixTight,BoundRect,bkgImg):
@@ -36,7 +36,7 @@ def placeDistortedSample(outImgTight,foregroundPixTight,BoundRect,bkgImg):
     bgHeight, bgWidth, _ = np.shape(bkgImg)
     outHeight,outWidth,_ = np.shape(outImgTight)
 
-    if (outHeight <  bgHeight and outWidth <bgWidth):
+    if (outHeight < bgHeight and outWidth < bgWidth):
 
         finalImg=np.array(bkgImg).copy()
 
@@ -72,7 +72,7 @@ def main():
     parser.read('Parameters.config')
 
 
-    backgroundFilePath=parser.get('USER_PARAMS','backgroundFilePath')
+    backgroundFilePath = parser.get('USER_PARAMS','backgroundFilePath')
     samplePath = parser.get('USER_PARAMS', 'sampleFilesPath')
     outputfolder =parser.get('USER_PARAMS', 'OutputPath')
     bgColor = int(parser.get('USER_PARAMS','bgColor'))
@@ -93,29 +93,28 @@ def main():
     if not(os.path.isdir(outputfolder)):
         os.makedirs(outputfolder)
 
-    bkgFileLoader=BackgroundFileLoader()
-    bkgFileLoader.loadbkgFiles(backgroundFilePath)
-    for sampleImgPath in glob.glob(os.path.join(samplePath,'*.jpg')):
+    count=0
 
-        filenameWithExt=os.path.split(sampleImgPath)[1]
-        filename=os.path.splitext(filenameWithExt)[0]
+    for bkgImgPath in glob.glob(os.path.join(backgroundFilePath, "*.jpg")):
+        bkgImg = cv.imread(bkgImgPath)
 
-        sampleImg=cv.imread(sampleImgPath)
-        dimensions=np.shape(sampleImg)
+        for sampleImgPath in glob.glob(os.path.join(samplePath, '*.jpg')):
+
+            filenameWithExt=os.path.split(sampleImgPath)[1]
+            filename=os.path.splitext(filenameWithExt)[0]
+
+            sampleImg=cv.imread(sampleImgPath)
+            dimensions=np.shape(sampleImg)
 
 
-        count=0
-        lower = np.array([bgColor - bgThresh, bgColor - bgThresh, bgColor - bgThresh])
-        upper = np.array([bgColor + bgThresh, bgColor + bgThresh, bgColor + bgThresh])
-        ImgModifier=SampImgModifier(sampleImg,dimensions,lower,upper,bgColor)
+            lower = np.array([bgColor - bgThresh, bgColor - bgThresh, bgColor - bgThresh])
+            upper = np.array([bgColor + bgThresh, bgColor + bgThresh, bgColor + bgThresh])
+            ImgModifier=SampImgModifier(sampleImg,dimensions,lower,upper,bgColor)
 
-        while(count<outputPerSample):
-
-            bkgImg=bkgFileLoader.bkgImgList[np.random.randint(0,bkgFileLoader.count)]
-            GaussianNoiseFlag  = np.less(np.random.uniform(0, 1),GaussianNoiseProb)
-            MedianNoiseFlag    = np.less(np.random.uniform(0, 1),MedianNoiseProb)
-            SharpenFlag        = np.less(np.random.uniform(0, 1),SharpenProb)
-            PersTransFlag      = np.less(np.random.uniform(0, 1),PerspTransProb)
+            GaussianNoiseFlag  = np.less(np.random.uniform(0, 1), GaussianNoiseProb)
+            MedianNoiseFlag    = np.less(np.random.uniform(0, 1), MedianNoiseProb)
+            SharpenFlag        = np.less(np.random.uniform(0, 1), SharpenProb)
+            PersTransFlag      = np.less(np.random.uniform(0, 1), PerspTransProb)
             ScalingFlag        = np.less(np.random.uniform(0, 1), ScalingProb)
             BrightnessFlag     = np.less(np.random.uniform(0, 1), BrightnesProb)
             AffineRotateFlag   = np.less(np.random.uniform(0, 1), AffineRotateProb)
@@ -150,16 +149,18 @@ def main():
             flag,finalImg,finalBoundRect= placeDistortedSample(outImgTight,foregroundPixTight,BoundRect, bkgImg)
             if(flag==True):
                 outputName= filename + '_'+ str(count)
-                cv.imwrite(os.path.join(outputfolder,str(outputName + '.jpg')),finalImg)
+                cv.imwrite(os.path.join(outputfolder,str(outputName + '.jpg')), finalImg)
                 with open(os.path.join(outputfolder,str(outputName + '.txt')),'w') as f:
-                    details='0 '+' '.join(str(coord) for coord in np.reshape(finalBoundRect,4))+'\n'
+                    details = '0 '+' '.join(str(coord) for coord in np.reshape(finalBoundRect,4))+'\n'
                     f.write(details)
-                count=count+1
+                count = count+1
+                print(outputName + "\t... Done")
             else:
                 outputName = filename + '_' + str(count)
                 cv.imwrite(os.path.join(outputfolder, str(outputName + '.jpg')), ImgModifier.modifiedImg)
                 #cv.imshow("modified",ImgModifier.modifiedImg)
                 cv.waitKey(100)
+                print(outputName + "\t... Warning")
 
             ImgModifier.resetFlags()
 
